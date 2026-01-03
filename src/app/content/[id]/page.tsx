@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { useContent, useHasAccess } from '@/hooks/useContentRegistry';
-import { fetchJSONFromIPFS, getGatewayUrl } from '@/lib/ipfs';
+import { fetchJSONFromIPFS, getGatewayUrl } from '@/lib/lighthouse';
 import { formatUSDC, type ContentMetadata } from '@/types/content';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

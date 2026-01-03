@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getGatewayUrl } from '@/lib/ipfs';
+import { getGatewayUrl } from '@/lib/lighthouse';
 import { formatUSDC, type Category } from '@/types/content';
 import Link from 'next/link';
 import Image from 'next/image';

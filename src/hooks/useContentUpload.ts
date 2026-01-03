@@ -15,7 +15,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { generateAESKey, encryptFile, bytesToBase64 } from '@/lib/encryption';
-import { uploadFile, uploadJSON } from '@/lib/ipfs';
+import { uploadFile, uploadJSON } from '@/lib/lighthouse';
 import { ACCESS_REGISTRY_ADDRESS, accessRegistryAbi } from '@/lib/contracts';
 import {
   UploadFormData,
@@ -150,10 +150,6 @@ export function useContentUpload() {
       
       const contentUploadResult = await uploadFile(encryptedContent, {
         name: `encrypted-${formData.title.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`,
-        keyvalues: {
-          type: 'encrypted-content',
-          creator: address,
-        },
       });
       
       const contentCID = contentUploadResult.cid;
@@ -164,10 +160,6 @@ export function useContentUpload() {
         const thumbnailBuffer = await formData.thumbnail.arrayBuffer();
         const thumbnailUploadResult = await uploadFile(new Uint8Array(thumbnailBuffer), {
           name: `thumbnail-${formData.title.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`,
-          keyvalues: {
-            type: 'thumbnail',
-            creator: address,
-          },
         });
         thumbnailCID = thumbnailUploadResult.cid;
       }
@@ -202,12 +194,6 @@ export function useContentUpload() {
       // Step 5: Upload metadata to IPFS
       const metadataUploadResult = await uploadJSON(metadata as unknown as Record<string, unknown>, {
         name: `metadata-${formData.title.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`,
-        keyvalues: {
-          type: 'content-metadata',
-          creator: address,
-          contentType: metadata.contentType,
-          category: metadata.category,
-        },
       });
       
       const metadataCID = metadataUploadResult.cid;

@@ -2,7 +2,7 @@
 
 import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { ACCESS_REGISTRY_ADDRESS, accessRegistryAbi, type ContentInfo } from '@/lib/contracts';
-import { fetchJSONFromIPFS } from '@/lib/ipfs';
+import { fetchJSONFromIPFS } from '@/lib/lighthouse';
 import { useState, useEffect, useCallback } from 'react';
 import type { ContentMetadata, Category, ContentCardData, DashboardContent, Transaction } from '@/types/content';
 import { parseAbiItem } from 'viem';
@@ -92,6 +92,7 @@ export function useAllContent(contentIds: `0x${string}`[] | undefined) {
   const [contentWithMetadata, setContentWithMetadata] = useState<ContentCardData[]>([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [metadataError, setMetadataError] = useState<Error | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
 
   // Fetch all content info from contract
   const contracts = contentIds?.map((id) => ({
@@ -108,75 +109,99 @@ export function useAllContent(contentIds: `0x${string}`[] | undefined) {
     },
   });
 
-  // Fetch metadata from IPFS for each content
-  const fetchMetadata = useCallback(async () => {
-    if (!contentIds || !contentInfos || contentInfos.length === 0) {
-      setContentWithMetadata([]);
+  // Fetch metadata from IPFS for each content - only once when data is ready
+  useEffect(() => {
+    // Skip if already fetched, no data, or still loading
+    if (hasFetched || !contentIds || !contentInfos || contentInfos.length === 0 || isLoadingContract) {
       return;
     }
 
-    setIsLoadingMetadata(true);
-    setMetadataError(null);
+    const fetchMetadata = async () => {
+      setIsLoadingMetadata(true);
+      setMetadataError(null);
 
-    try {
-      const results: ContentCardData[] = [];
+      try {
+        const results: ContentCardData[] = [];
 
-      for (let i = 0; i < contentIds.length; i++) {
-        const contentId = contentIds[i];
-        const result = contentInfos[i];
+        for (let i = 0; i < contentIds.length; i++) {
+          const contentId = contentIds[i];
+          const result = contentInfos[i];
 
-        if (result.status !== 'success' || !result.result) continue;
+          if (result.status !== 'success' || !result.result) continue;
 
-        const info = result.result as ContentInfo;
-        
-        // Skip inactive content
-        if (!info.active) continue;
-
-        try {
-          // Fetch metadata from IPFS
-          const metadata = await fetchJSONFromIPFS<ContentMetadata>(info.metadataCID);
+          const info = result.result as ContentInfo;
           
-          results.push({
-            contentId,
-            title: metadata.title,
-            thumbnailCID: metadata.thumbnailCID,
-            creatorAddress: info.creator,
-            priceUSDC: info.priceUSDC,
-            category: metadata.category as Category,
-            tags: metadata.tags || [],
-          });
-        } catch (err) {
-          // If metadata fetch fails, use fallback data
-          console.warn(`Failed to fetch metadata for ${contentId}:`, err);
-          results.push({
-            contentId,
-            title: 'Untitled Content',
-            thumbnailCID: null,
-            creatorAddress: info.creator,
-            priceUSDC: info.priceUSDC,
-            category: 'other' as Category,
-            tags: [],
-          });
+          // Skip inactive content
+          if (!info.active) continue;
+
+          // Check if metadataCID looks like a valid IPFS CID
+          const isValidCID = info.metadataCID.startsWith('Qm') || info.metadataCID.startsWith('bafy');
+          
+          if (!isValidCID) {
+            // Skip invalid CIDs (test data)
+            console.warn(`Skipping invalid CID for ${contentId}: ${info.metadataCID}`);
+            results.push({
+              contentId,
+              title: 'Test Content (Invalid CID)',
+              thumbnailCID: null,
+              creatorAddress: info.creator,
+              priceUSDC: info.priceUSDC,
+              category: 'other' as Category,
+              tags: [],
+            });
+            continue;
+          }
+
+          try {
+            // Fetch metadata from IPFS
+            const metadata = await fetchJSONFromIPFS<ContentMetadata>(info.metadataCID);
+            
+            results.push({
+              contentId,
+              title: metadata.title,
+              thumbnailCID: metadata.thumbnailCID,
+              creatorAddress: info.creator,
+              priceUSDC: info.priceUSDC,
+              category: metadata.category as Category,
+              tags: metadata.tags || [],
+            });
+          } catch (err) {
+            // If metadata fetch fails, use fallback data
+            console.warn(`Failed to fetch metadata for ${contentId}:`, err);
+            results.push({
+              contentId,
+              title: 'Untitled Content',
+              thumbnailCID: null,
+              creatorAddress: info.creator,
+              priceUSDC: info.priceUSDC,
+              category: 'other' as Category,
+              tags: [],
+            });
+          }
         }
+
+        setContentWithMetadata(results);
+        setHasFetched(true);
+      } catch (err) {
+        setMetadataError(err instanceof Error ? err : new Error('Failed to fetch metadata'));
+      } finally {
+        setIsLoadingMetadata(false);
       }
+    };
 
-      setContentWithMetadata(results);
-    } catch (err) {
-      setMetadataError(err instanceof Error ? err : new Error('Failed to fetch metadata'));
-    } finally {
-      setIsLoadingMetadata(false);
-    }
-  }, [contentIds, contentInfos]);
-
-  useEffect(() => {
     fetchMetadata();
-  }, [fetchMetadata]);
+  }, [contentIds, contentInfos, isLoadingContract, hasFetched]);
+
+  // Refetch function - resets hasFetched to trigger new fetch
+  const refetch = useCallback(() => {
+    setHasFetched(false);
+  }, []);
 
   return {
     content: contentWithMetadata,
     isLoading: isLoadingContract || isLoadingMetadata,
     error: contractError || metadataError,
-    refetch: fetchMetadata,
+    refetch,
   };
 }
 

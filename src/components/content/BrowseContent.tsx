@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useReadContract } from 'wagmi';
 import { ContentGrid } from './ContentGrid';
 import { useAllContent } from '@/hooks/useContentRegistry';
@@ -15,8 +15,6 @@ import { ACCESS_REGISTRY_ADDRESS, accessRegistryAbi } from '@/lib/contracts';
  * Validates: Requirements 4.1, 10.1
  */
 export function BrowseContent() {
-  const [retryCount, setRetryCount] = useState(0);
-
   // Fetch all content IDs directly from contract state - FAST!
   const { 
     data: contentIds, 
@@ -47,7 +45,6 @@ export function BrowseContent() {
 
   // Retry handler
   const handleRetry = useCallback(() => {
-    setRetryCount(prev => prev + 1);
     refetchIds();
     refetchContent();
   }, [refetchIds, refetchContent]);

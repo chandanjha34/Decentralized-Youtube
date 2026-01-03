@@ -204,9 +204,10 @@ async function grantAccessOnChain(
 }
 
 /**
- * Pinata gateway URL for fetching metadata
+ * Universal IPFS gateway URL for fetching metadata
+ * Using dweb.link which can fetch from any IPFS provider (Pinata, Lighthouse, etc.)
  */
-const PINATA_GATEWAY_URL = process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs';
+const IPFS_GATEWAY_URL = 'https://dweb.link/ipfs';
 
 /**
  * Content metadata structure from IPFS
@@ -239,7 +240,7 @@ interface ContentMetadata {
  */
 async function fetchMetadataFromIPFS(metadataCID: string): Promise<ContentMetadata | null> {
   try {
-    const response = await fetch(`${PINATA_GATEWAY_URL}/${metadataCID}`);
+    const response = await fetch(`${IPFS_GATEWAY_URL}/${metadataCID}`);
     if (!response.ok) {
       console.error(`Failed to fetch metadata: ${response.statusText}`);
       return null;

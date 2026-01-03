@@ -4,6 +4,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'dweb.link',
+        pathname: '/ipfs/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gateway.lighthouse.storage',
+        pathname: '/ipfs/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'gateway.pinata.cloud',
         pathname: '/ipfs/**',
       },

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchFromIPFS } from '@/lib/ipfs';
+import { fetchFromIPFS } from '@/lib/lighthouse';
 import { decrypt, base64ToBytes } from '@/lib/encryption';
 import { type ContentType } from '@/types/content';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';

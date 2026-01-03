@@ -29,6 +29,9 @@ contract AccessRegistry is Ownable {
     mapping(bytes32 => ContentInfo) public contents;
     mapping(bytes32 => mapping(address => AccessProof)) public accessProofs;
     mapping(address => bytes32[]) public creatorContents;
+    
+    // Global list of all content IDs for fast retrieval
+    bytes32[] public allContentIds;
 
     address public facilitator; // Authorized to call grantAccess
 
@@ -96,6 +99,7 @@ contract AccessRegistry is Ownable {
         });
 
         creatorContents[msg.sender].push(contentId);
+        allContentIds.push(contentId);
 
         emit ContentRegistered(contentId, msg.sender, metadataCID, priceUSDC);
     }
@@ -167,6 +171,22 @@ contract AccessRegistry is Ownable {
      */
     function getCreatorContents(address creator) external view returns (bytes32[] memory) {
         return creatorContents[creator];
+    }
+
+    /**
+     * @notice Get all content IDs registered on the platform
+     * @return bytes32[] Array of all content IDs
+     */
+    function getAllContentIds() external view returns (bytes32[] memory) {
+        return allContentIds;
+    }
+
+    /**
+     * @notice Get the total number of content items
+     * @return uint256 Total content count
+     */
+    function getContentCount() external view returns (uint256) {
+        return allContentIds.length;
     }
 
     /**

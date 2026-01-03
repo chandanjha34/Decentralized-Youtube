@@ -1,8 +1,7 @@
 {
-  "AccessRegistry": "0x41530D874f3DA5e7C998201BaA18aE0eC4A4fF2C",
+  "AccessRegistry": "0xA8621c45bfe3A4f163b17Ba509735118fbC7610e",
   "chainId": 80002,
   "network": "polygonAmoy",
-  "deployedAt": "2026-01-03T11:41:31.611Z",
-  "deploymentBlock": 18000000,
+  "deployedAt": "2026-01-03T16:37:26.540Z",
   "facilitator": "0x65c3768E98eE211a7589fe94c753e11cB8895069"
 }

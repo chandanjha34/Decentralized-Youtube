@@ -7,12 +7,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
 
 // Use multiple RPC endpoints for Polygon Amoy with fallback
-// Primary: Alchemy free tier, Fallback: Public RPC
-const POLYGON_AMOY_RPCS = [
-  'https://polygon-amoy.g.alchemy.com/v2/demo', // Alchemy demo
-  'https://polygon-amoy-bor-rpc.publicnode.com', // PublicNode
-  'https://rpc-amoy.polygon.technology', // Official (can be slow)
-];
+// Try different providers for reliability
+const POLYGON_AMOY_RPC = 'https://rpc.ankr.com/polygon_amoy';
 
 // Create wagmi config with RainbowKit defaults
 const config = getDefaultConfig({
@@ -20,11 +16,11 @@ const config = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id',
   chains: [polygonAmoy],
   transports: {
-    [polygonAmoy.id]: http(POLYGON_AMOY_RPCS[1], {
-      batch: false, // Disable batching to avoid timeout issues
-      retryCount: 2,
-      retryDelay: 500,
-      timeout: 30000, // 30 second timeout
+    [polygonAmoy.id]: http(POLYGON_AMOY_RPC, {
+      batch: false,
+      retryCount: 3,
+      retryDelay: 1000,
+      timeout: 60000, // 60 second timeout
     }),
   },
   ssr: true,

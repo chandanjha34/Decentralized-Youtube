@@ -182,14 +182,12 @@ export function useContentUpload() {
       
       const priceInUSDC = parseUSDC(formData.priceUSDC);
       
-      // Call the contract with explicit gas settings for Polygon Amoy
+      // Call the contract - let wallet estimate gas
       writeContract({
         address: ACCESS_REGISTRY_ADDRESS,
         abi: accessRegistryAbi,
         functionName: 'registerContent',
         args: [metadataCID, contentCID, priceInUSDC],
-        // Add gas buffer for Polygon Amoy testnet
-        gas: BigInt(500000),
       });
       
       // Return partial result - the full result will be available after tx confirmation

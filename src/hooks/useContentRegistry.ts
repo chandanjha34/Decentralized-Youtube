@@ -1,7 +1,7 @@
 'use client';
 
 import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
-import { ACCESS_REGISTRY_ADDRESS, CONTRACT_DEPLOYMENT_BLOCK, accessRegistryAbi, type ContentInfo } from '@/lib/contracts';
+import { ACCESS_REGISTRY_ADDRESS, accessRegistryAbi, type ContentInfo } from '@/lib/contracts';
 import { fetchJSONFromIPFS } from '@/lib/ipfs';
 import { useState, useEffect, useCallback } from 'react';
 import type { ContentMetadata, Category, ContentCardData, DashboardContent, Transaction } from '@/types/content';
@@ -378,12 +378,6 @@ export function useCreatorEarnings(creatorAddress: string | undefined) {
     setError(null);
 
     try {
-      // Get current block number for range calculation
-      const currentBlock = await publicClient.getBlockNumber();
-      const fromBlock = currentBlock > CONTRACT_DEPLOYMENT_BLOCK 
-        ? CONTRACT_DEPLOYMENT_BLOCK 
-        : currentBlock - BigInt(100000);
-
       // Build a map of contentId -> price and contentId -> metadata
       const contentPriceMap = new Map<string, bigint>();
       const contentTitleMap = new Map<string, string>();
@@ -407,19 +401,23 @@ export function useCreatorEarnings(creatorAddress: string | undefined) {
       }
 
       // Fetch AccessGranted events for all creator's content
+      // Use a reasonable block range (last 50k blocks) to avoid timeout
       const allTransactions: Transaction[] = [];
       let totalEarnings = BigInt(0);
 
       // Query events for each content ID
       for (const contentId of contentIds) {
         try {
+          const currentBlock = await publicClient.getBlockNumber();
+          const fromBlock = currentBlock > BigInt(50000) ? currentBlock - BigInt(50000) : BigInt(0);
+          
           const logs = await publicClient.getLogs({
             address: ACCESS_REGISTRY_ADDRESS,
             event: parseAbiItem('event AccessGranted(bytes32 indexed contentId, address indexed consumer, bytes32 paymentTxHash, uint256 expiryTimestamp)'),
             args: {
               contentId: contentId,
             },
-            fromBlock: fromBlock > BigInt(0) ? fromBlock : BigInt(0),
+            fromBlock,
             toBlock: 'latest',
           });
 

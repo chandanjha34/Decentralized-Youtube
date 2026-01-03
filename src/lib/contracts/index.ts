@@ -3,9 +3,6 @@ import addressesJson from "./addresses.json";
 
 export const ACCESS_REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_ACCESS_REGISTRY_ADDRESS || addressesJson.AccessRegistry) as `0x${string}`;
 
-// Deployment block for efficient event queries (avoids scanning from genesis)
-export const CONTRACT_DEPLOYMENT_BLOCK = BigInt(addressesJson.deploymentBlock || 18000000);
-
 // Types for contract interactions
 export interface ContentInfo {
   creator: `0x${string}`;
@@ -171,6 +168,27 @@ export const accessRegistryAbi = [
     inputs: [{ internalType: "address", name: "creator", type: "address" }],
     name: "getCreatorContents",
     outputs: [{ internalType: "bytes32[]", name: "", type: "bytes32[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getAllContentIds",
+    outputs: [{ internalType: "bytes32[]", name: "", type: "bytes32[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getContentCount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "allContentIds",
+    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
     stateMutability: "view",
     type: "function",
   },

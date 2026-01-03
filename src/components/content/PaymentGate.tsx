@@ -3,71 +3,35 @@
 /**
  * PaymentGate Component
  * 
- * Displays payment UI for locked content and handles x402 micropayment flow.
- * Shows price, unlock button, and handles the complete payment lifecycle.
- * 
- * Requirements: 5.2, 5.3, 5.4, 5.8, 10.3
+ * Displays payment UI for locked content and handles POL payment flow.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ErrorMessage, getErrorType, getUserFriendlyMessage } from '@/components/ui/error-message';
-import { useX402Payment, type PaymentStatus } from '@/hooks/useX402Payment';
+import { usePolPayment, type PaymentStatus, usdcToPolAmount, formatPolAmount } from '@/hooks/usePolPayment';
 import { formatUSDC } from '@/types/content';
 
 export interface PaymentGateProps {
-  /** Content ID to unlock */
   contentId: string;
-  /** Price in USDC (6 decimals) */
   priceUSDC: bigint;
-  /** Creator's wallet address */
   creatorAddress: string;
-  /** Callback when payment succeeds */
   onPaymentSuccess?: (key: string, contentCID: string) => void;
-  /** Callback when payment fails */
   onPaymentError?: (error: string) => void;
 }
 
-/**
- * Status messages for each payment state
- */
 const STATUS_MESSAGES: Record<PaymentStatus, string> = {
   idle: '',
   checking: 'Checking access...',
-  signing: 'Please sign the payment in your wallet...',
-  verifying: 'Verifying payment...',
-  settling: 'Settling payment on-chain...',
+  signing: 'Confirm in your wallet...',
+  confirming: 'Waiting for confirmation...',
   granting: 'Granting access...',
   success: 'Payment successful!',
   error: 'Payment failed',
 };
 
-/**
- * Status icons for visual feedback
- */
-const STATUS_ICONS: Record<PaymentStatus, string> = {
-  idle: '🔓',
-  checking: '⏳',
-  signing: '✍️',
-  verifying: '🔍',
-  settling: '⛓️',
-  granting: '🔑',
-  success: '✅',
-  error: '❌',
-};
-
-/**
- * PaymentGate Component
- * 
- * Handles the x402 payment flow for unlocking content:
- * 1. Displays price and unlock button
- * 2. On click: initiates x402 payment flow
- * 3. Signs EIP-3009 authorization with wallet
- * 4. Sends payment to facilitator
- * 5. Returns decryption key on success
- */
 export function PaymentGate({
   contentId,
   priceUSDC,
@@ -81,75 +45,81 @@ export function PaymentGate({
     error,
     decryptionKey,
     contentCID,
+    txHash,
     pay,
     reset,
-  } = useX402Payment();
+  } = usePolPayment();
 
-  const [isProcessing, setIsProcessing] = useState(false);
+  // Calculate POL price
+  const polWei = usdcToPolAmount(priceUSDC);
+  const polPrice = formatPolAmount(polWei);
+  const usdcPrice = formatUSDC(priceUSDC);
 
-  // Handle successful payment
+  // Handle success callback
   useEffect(() => {
     if (status === 'success' && decryptionKey && contentCID) {
       onPaymentSuccess?.(decryptionKey, contentCID);
     }
   }, [status, decryptionKey, contentCID, onPaymentSuccess]);
 
-  // Handle payment error
+  // Handle error callback
   useEffect(() => {
     if (status === 'error' && error) {
       onPaymentError?.(error);
     }
   }, [status, error, onPaymentError]);
 
-  /**
-   * Handle unlock button click
-   * Initiates the x402 payment flow
-   */
-  const handleUnlock = useCallback(async () => {
-    if (!isConnected || isProcessing) return;
-
-    setIsProcessing(true);
+  const handleUnlock = useCallback(() => {
+    if (!isConnected) return;
     reset();
+    pay(contentId, creatorAddress, priceUSDC);
+  }, [isConnected, contentId, creatorAddress, priceUSDC, pay, reset]);
 
-    try {
-      await pay(contentId);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [isConnected, isProcessing, contentId, pay, reset]);
-
-  /**
-   * Handle retry after error
-   */
   const handleRetry = useCallback(() => {
     reset();
   }, [reset]);
 
-  const formattedPrice = formatUSDC(priceUSDC);
-  const isLoading = isProcessing || ['checking', 'signing', 'verifying', 'settling', 'granting'].includes(status);
+  const isLoading = ['checking', 'signing', 'confirming', 'granting'].includes(status);
   const showError = status === 'error' && error;
   const showSuccess = status === 'success';
 
   return (
     <div className="space-y-4">
-      {/* Description */}
       <p className="text-sm text-muted-foreground">
-        Unlock this content with a one-time payment. No subscriptions, no accounts.
+        Unlock this content with a one-time POL payment.
       </p>
 
+      {/* Price display */}
+      <div className="bg-muted/50 rounded-lg p-3 text-center">
+        <div className="text-2xl font-bold text-primary">{polPrice} POL</div>
+        <div className="text-sm text-muted-foreground">≈ ${usdcPrice} USD</div>
+      </div>
+
       {/* Status message */}
-      {status !== 'idle' && status !== 'success' && status !== 'error' && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-          <span>{STATUS_ICONS[status]}</span>
+      {isLoading && (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <LoadingSpinner size="sm" />
           <span>{STATUS_MESSAGES[status]}</span>
         </div>
       )}
 
       {/* Success message */}
       {showSuccess && (
-        <div className="flex items-center gap-2 text-sm text-green-600">
-          <span>{STATUS_ICONS.success}</span>
-          <span>{STATUS_MESSAGES.success}</span>
+        <div className="space-y-2 text-center">
+          <div className="flex items-center justify-center gap-2 text-sm text-green-600">
+            <span>✅</span>
+            <span>Payment successful!</span>
+          </div>
+          {txHash && (
+            <a
+              href={`https://amoy.polygonscan.com/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:underline"
+            >
+              View transaction →
+            </a>
+          )}
         </div>
       )}
 
@@ -178,31 +148,30 @@ export function PaymentGate({
               {STATUS_MESSAGES[status] || 'Processing...'}
             </span>
           ) : (
-            <span>🔓 Unlock for ${formattedPrice} USDC</span>
+            <span>🔓 Pay {polPrice} POL to Unlock</span>
           )}
         </Button>
       )}
 
-      {/* x402 info */}
+      {/* Wallet not connected */}
+      {!isConnected && !showSuccess && (
+        <p className="text-sm text-amber-600 text-center">
+          Connect your wallet to unlock content
+        </p>
+      )}
+
+      {/* Info */}
       <div className="text-xs text-muted-foreground text-center space-y-1">
-        <p>Powered by x402 micropayments</p>
-        <p className="flex items-center justify-center gap-1">
-          <span>Payment goes directly to</span>
-          <code className="bg-muted px-1 rounded text-[10px]">
-            {truncateAddress(creatorAddress)}
+        <p>Direct payment on Polygon Amoy</p>
+        <p>
+          Payment goes to{' '}
+          <code className="bg-muted px-1 rounded">
+            {creatorAddress.slice(0, 6)}...{creatorAddress.slice(-4)}
           </code>
         </p>
       </div>
     </div>
   );
-}
-
-/**
- * Truncate Ethereum address for display
- */
-function truncateAddress(address: string): string {
-  if (!address || address.length < 10) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export default PaymentGate;

@@ -13,13 +13,17 @@ const config = getDefaultConfig({
   chains: [polygonAmoy],
   transports: {
     [polygonAmoy.id]: fallback([
-      http('https://rpc-amoy.polygon.technology', {
+      http('https://polygon-amoy.drpc.org', {
         batch: false,
-        timeout: 60000,
+        timeout: 30000,
       }),
       http('https://polygon-amoy-bor-rpc.publicnode.com', {
         batch: false,
-        timeout: 60000,
+        timeout: 30000,
+      }),
+      http('https://rpc-amoy.polygon.technology', {
+        batch: false,
+        timeout: 30000,
       }),
       http(), // Default - lets wallet use its own RPC
     ]),

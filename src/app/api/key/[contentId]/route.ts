@@ -97,6 +97,23 @@ function buildPaymentRequirements(
 }
 
 /**
+ * Decode base64 payment payload
+ */
+function decodePaymentPayload(encodedPayload: string): unknown {
+  try {
+    const decoded = Buffer.from(encodedPayload, 'base64').toString('utf-8');
+    return JSON.parse(decoded);
+  } catch {
+    // If not base64, try parsing as JSON directly
+    try {
+      return JSON.parse(encodedPayload);
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
  * Verify payment with x402 facilitator
  */
 async function verifyPaymentWithFacilitator(
@@ -104,13 +121,20 @@ async function verifyPaymentWithFacilitator(
   paymentRequirements: PaymentRequirements
 ): Promise<{ valid: boolean; txHash?: string; consumer?: string; error?: string }> {
   try {
+    // Decode the base64 payment payload
+    const decodedPayload = decodePaymentPayload(paymentPayload);
+    
+    if (!decodedPayload) {
+      return { valid: false, error: 'Invalid payment payload format' };
+    }
+
     const response = await fetch(`${X402_FACILITATOR_URL}/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        paymentPayload,
+        paymentPayload: decodedPayload,
         paymentRequirements,
       }),
     });
@@ -140,13 +164,20 @@ async function settlePaymentWithFacilitator(
   paymentRequirements: PaymentRequirements
 ): Promise<{ success: boolean; txHash?: string; consumer?: string; error?: string }> {
   try {
+    // Decode the base64 payment payload
+    const decodedPayload = decodePaymentPayload(paymentPayload);
+    
+    if (!decodedPayload) {
+      return { success: false, error: 'Invalid payment payload format' };
+    }
+
     const response = await fetch(`${X402_FACILITATOR_URL}/settle`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        paymentPayload,
+        paymentPayload: decodedPayload,
         paymentRequirements,
       }),
     });

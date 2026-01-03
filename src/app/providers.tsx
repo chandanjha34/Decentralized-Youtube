@@ -1,27 +1,28 @@
 'use client';
 
-import { WagmiProvider, http } from 'wagmi';
+import { WagmiProvider, http, fallback } from 'wagmi';
 import { polygonAmoy } from 'wagmi/chains';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
 
-// Use multiple RPC endpoints for Polygon Amoy with fallback
-// Try different providers for reliability
-const POLYGON_AMOY_RPC = 'https://rpc.ankr.com/polygon_amoy';
-
-// Create wagmi config with RainbowKit defaults
+// Use multiple RPC endpoints with fallback for reliability
 const config = getDefaultConfig({
   appName: 'Unlock - Decentralized Content Platform',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id',
   chains: [polygonAmoy],
   transports: {
-    [polygonAmoy.id]: http(POLYGON_AMOY_RPC, {
-      batch: false,
-      retryCount: 3,
-      retryDelay: 1000,
-      timeout: 60000, // 60 second timeout
-    }),
+    [polygonAmoy.id]: fallback([
+      http('https://rpc-amoy.polygon.technology', {
+        batch: false,
+        timeout: 60000,
+      }),
+      http('https://polygon-amoy-bor-rpc.publicnode.com', {
+        batch: false,
+        timeout: 60000,
+      }),
+      http(), // Default - lets wallet use its own RPC
+    ]),
   },
   ssr: true,
 });

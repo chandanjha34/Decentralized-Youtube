@@ -12,8 +12,8 @@
  * Requirements: 2.1, 2.2, 2.3, 2.5, 2.6, 2.7
  */
 
-import { useState, useCallback } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useState, useCallback, useEffect } from 'react';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { generateAESKey, encryptFile, bytesToBase64 } from '@/lib/encryption';
 import { uploadFile, uploadJSON } from '@/lib/ipfs';
 import { ACCESS_REGISTRY_ADDRESS, accessRegistryAbi } from '@/lib/contracts';
@@ -58,6 +58,9 @@ export function useContentUpload() {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [manuallyConfirmed, setManuallyConfirmed] = useState(false);
+  
+  const publicClient = usePublicClient();
   
   // Contract write hook
   const { 
@@ -68,14 +71,45 @@ export function useContentUpload() {
     reset: resetWrite
   } = useWriteContract();
   
-  // Wait for transaction receipt
+  // Wait for transaction receipt with longer polling
   const { 
     isLoading: isConfirming, 
     isSuccess: isConfirmed,
     data: receipt
   } = useWaitForTransactionReceipt({
     hash: txHash,
+    confirmations: 1,
+    pollingInterval: 3000, // Poll every 3 seconds
+    timeout: 120000, // 2 minute timeout
   });
+
+  // Manual polling fallback when wagmi hook is slow
+  useEffect(() => {
+    if (!txHash || isConfirmed || manuallyConfirmed || !publicClient) return;
+    
+    let cancelled = false;
+    const pollReceipt = async () => {
+      try {
+        const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+        if (receipt && receipt.status === 'success' && !cancelled) {
+          console.log('Transaction confirmed via manual polling:', receipt);
+          setManuallyConfirmed(true);
+        }
+      } catch (err) {
+        // Transaction not yet mined, continue polling
+      }
+    };
+    
+    // Poll every 2 seconds
+    const interval = setInterval(pollReceipt, 2000);
+    // Also poll immediately
+    pollReceipt();
+    
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [txHash, isConfirmed, manuallyConfirmed, publicClient]);
 
   /**
    * Reset the upload state
@@ -84,6 +118,7 @@ export function useContentUpload() {
     setStatus('idle');
     setError(null);
     setResult(null);
+    setManuallyConfirmed(false);
     resetWrite();
   }, [resetWrite]);
 
@@ -238,7 +273,7 @@ export function useContentUpload() {
     txHash,
     isWritePending,
     isConfirming,
-    isConfirmed,
+    isConfirmed: isConfirmed || manuallyConfirmed,
     writeError,
     receipt,
     

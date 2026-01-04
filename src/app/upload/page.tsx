@@ -1,20 +1,24 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { useAccount } from 'wagmi';
 import { UploadForm } from '@/components/upload';
+import { ConnectButton } from '@/components/wallet/ConnectButton';
 
 /**
  * Upload Page
  * 
  * Creator upload form page for uploading new content.
+ * Requires wallet connection to access.
+ * 
+ * Requirements: 6.5
  */
 export default function UploadPage() {
-  const router = useRouter();
+  const { isConnected } = useAccount();
 
   const handleUploadComplete = (contentId: string) => {
     console.log('Upload complete:', contentId);
-    // Could navigate to content page or dashboard
+    // Navigate to dashboard on success
+    window.location.href = '/dashboard';
   };
 
   const handleUploadError = (error: Error) => {
@@ -22,34 +26,34 @@ export default function UploadPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <button 
-            onClick={() => router.push('/')}
-            className="text-xl font-bold hover:opacity-80 transition-opacity"
-          >
-            Unlock
-          </button>
-          <ConnectButton />
-        </div>
-      </header>
+    <div className="py-16 px-8">
+      <div className="mb-12 text-center">
+        <h1 className="text-5xl font-instrument-serif text-[#37322F] mb-4">Upload Content</h1>
+        <p className="text-lg text-[#605A57]">
+          Monetize your content with pay-per-view access
+        </p>
+      </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Upload Content</h1>
-          <p className="text-muted-foreground">
-            Monetize your content with pay-per-view access
-          </p>
+      {!isConnected ? (
+        <div className="w-full max-w-[600px] mx-auto">
+          <div className="bg-white border border-[#E0DEDB] rounded-lg p-8 text-center">
+            <h2 className="text-2xl font-instrument-serif text-[#37322F] mb-4">
+              Connect Your Wallet
+            </h2>
+            <p className="text-[#605A57] mb-6">
+              You need to connect your wallet to upload content and receive payments.
+            </p>
+            <div className="flex justify-center">
+              <ConnectButton />
+            </div>
+          </div>
         </div>
-
+      ) : (
         <UploadForm
           onUploadComplete={handleUploadComplete}
           onUploadError={handleUploadError}
         />
-      </div>
-    </main>
+      )}
+    </div>
   );
 }

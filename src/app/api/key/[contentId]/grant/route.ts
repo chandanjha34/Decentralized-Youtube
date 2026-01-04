@@ -10,7 +10,15 @@ import { polygonAmoy } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ACCESS_REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_ACCESS_REGISTRY_ADDRESS || '') as `0x${string}`;
-const IPFS_GATEWAY_URL = 'https://dweb.link/ipfs';
+
+// Multiple IPFS gateways for reliability
+const IPFS_GATEWAYS = [
+  'https://gateway.lighthouse.storage/ipfs',
+  'https://cloudflare-ipfs.com/ipfs',
+  'https://ipfs.io/ipfs',
+  'https://dweb.link/ipfs',
+];
+
 const POL_USD_RATE = 0.40;
 
 const accessRegistryAbi = parseAbi([
@@ -34,7 +42,7 @@ const publicClient = createPublicClient({
 function getWalletClient() {
   const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
   if (!privateKey) throw new Error('DEPLOYER_PRIVATE_KEY not configured');
-  
+
   const account = privateKeyToAccount(`0x${privateKey.replace('0x', '')}`);
   return createWalletClient({
     account,
@@ -49,15 +57,19 @@ interface ContentMetadata {
 }
 
 async function fetchMetadataFromIPFS(metadataCID: string): Promise<ContentMetadata | null> {
-  try {
-    const response = await fetch(`${IPFS_GATEWAY_URL}/${metadataCID}`, {
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!response.ok) return null;
-    return await response.json() as ContentMetadata;
-  } catch {
-    return null;
+  for (const gateway of IPFS_GATEWAYS) {
+    try {
+      const response = await fetch(`${gateway}/${metadataCID}`, {
+        signal: AbortSignal.timeout(15000),
+      });
+      if (response.ok) {
+        return await response.json() as ContentMetadata;
+      }
+    } catch {
+      continue; // Try next gateway
+    }
   }
+  return null;
 }
 
 function usdcToMinPolWei(priceUSDC: bigint): bigint {
@@ -118,7 +130,7 @@ export async function POST(
         await new Promise(r => setTimeout(r, 1000));
       }
     }
-    
+
     if (!tx) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 400 });
     }
@@ -138,27 +150,72 @@ export async function POST(
     }
 
     if (!isPaidEnough) {
-      return NextResponse.json({ 
-        error: `Insufficient payment` 
+      return NextResponse.json({
+        error: `Insufficient payment`
       }, { status: 400 });
     }
 
-    // Grant access on-chain (best effort - don't fail if this fails)
+    // Grant access on-chain - MANDATORY (not best effort)
+    let grantTxHash: string | undefined;
     try {
       const walletClient = getWalletClient();
-      await walletClient.writeContract({
-        address: ACCESS_REGISTRY_ADDRESS,
-        abi: accessRegistryAbi,
-        functionName: 'grantAccess',
-        args: [contentId, consumerAddress as `0x${string}`, txHash as `0x${string}`, BigInt(0)],
-      });
+
+      // Submit transaction with retry logic
+      let hash;
+      let attempt = 0;
+      const maxAttempts = 3;
+
+      while (attempt < maxAttempts) {
+        try {
+          hash = await walletClient.writeContract({
+            address: ACCESS_REGISTRY_ADDRESS,
+            abi: accessRegistryAbi,
+            functionName: 'grantAccess',
+            args: [contentId, consumerAddress as `0x${string}`, txHash as `0x${string}`, BigInt(0)],
+          });
+          break; // Success
+        } catch (err) {
+          attempt++;
+          if (attempt >= maxAttempts) {
+            throw err;
+          }
+          // Exponential backoff
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+        }
+      }
+
+      if (!hash) {
+        throw new Error('Failed to submit grant access transaction');
+      }
+
+      grantTxHash = hash;
+      console.log('Grant access transaction submitted:', hash);
+
+      // Wait for confirmation with timeout
+      const receipt = await Promise.race([
+        publicClient.waitForTransactionReceipt({ hash }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Grant access confirmation timeout')), 60000)
+        ),
+      ]);
+
+      if (receipt.status !== 'success') {
+        throw new Error('Grant access transaction failed on-chain');
+      }
+
+      console.log('Grant access transaction confirmed:', receipt.transactionHash);
     } catch (grantError) {
-      console.error('Failed to grant access on-chain (continuing):', grantError);
+      console.error('Failed to grant access on-chain:', grantError);
+      return NextResponse.json({
+        error: 'Payment verified but failed to grant on-chain access. Please contact support with your transaction hash.',
+        txHash,
+        details: grantError instanceof Error ? grantError.message : 'Unknown error'
+      }, { status: 500 });
     }
 
     // Get decryption key from metadata
     const metadata = await fetchMetadataFromIPFS(contentInfo.metadataCID);
-    
+
     if (!metadata?.encryptedKeyBlob) {
       return NextResponse.json({ error: 'Failed to retrieve decryption key' }, { status: 500 });
     }
@@ -168,12 +225,13 @@ export async function POST(
       key: metadata.encryptedKeyBlob,
       contentCID: contentInfo.contentCID,
       txHash,
+      grantTxHash, // Include grant transaction hash for transparency
     });
 
   } catch (error) {
     console.error('Grant access error:', error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Internal server error' 
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Internal server error'
     }, { status: 500 });
   }
 }

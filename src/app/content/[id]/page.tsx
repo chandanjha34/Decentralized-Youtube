@@ -129,84 +129,96 @@ export default function ContentDetailPage() {
   // Loading state
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col items-center justify-center py-12">
-            <LoadingSpinner size="lg" message="Loading content..." />
-          </div>
-          <ContentDetailSkeleton />
+      <div className="py-8 px-4 max-w-[1060px] mx-auto">
+        <div className="flex flex-col items-center justify-center py-12">
+          <LoadingSpinner size="lg" message="Loading content..." />
         </div>
-      </main>
+        <ContentDetailSkeleton />
+      </div>
     );
   }
   
   // Error state
   if (error) {
     return (
-      <main className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <ErrorMessage
-              type={getErrorType(error)}
-              message={getUserFriendlyMessage(error)}
-              showSuggestion={true}
-              variant="card"
-            />
-            <div className="mt-4 text-center">
-              <Link href="/">
-                <Button variant="outline">← Back to Browse</Button>
-              </Link>
-            </div>
+      <div className="py-8 px-4 max-w-[1060px] mx-auto">
+        <div className="max-w-2xl mx-auto">
+          <ErrorMessage
+            type={getErrorType(error)}
+            message={getUserFriendlyMessage(error)}
+            showSuggestion={true}
+            variant="card"
+          />
+          <div className="mt-4 text-center">
+            <Link href="/explore">
+              <Button variant="outline" className="rounded-full font-['Inter']">← Back to Explore</Button>
+            </Link>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
   
   // Content not found
   if (!contentInfo || !contentInfo.active) {
     return (
-      <main className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <Card className="max-w-2xl mx-auto text-center">
-            <CardHeader>
-              <div className="text-6xl mb-4">🔍</div>
-              <CardTitle>Content Not Found</CardTitle>
-              <CardDescription>
-                This content doesn&apos;t exist or has been removed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/">
-                <Button>Browse Content</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      <div className="py-8 px-4 max-w-[1060px] mx-auto">
+        <Card className="max-w-2xl mx-auto text-center bg-white border-[#E0DEDB]">
+          <CardHeader>
+            <div className="text-6xl mb-4">🔍</div>
+            <CardTitle className="font-['Instrument_Serif'] text-[#37322F]">Content Not Found</CardTitle>
+            <CardDescription className="font-['Inter'] text-[#605A57]">
+              This content doesn&apos;t exist or has been removed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/explore">
+              <Button className="rounded-full bg-[#37322F] hover:bg-[#49423D] font-['Inter']">Browse Content</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
   
   const thumbnailUrl = metadata?.thumbnailCID ? getGatewayUrl(metadata.thumbnailCID) : null;
   
   return (
-    <main className="min-h-screen bg-background">
-      <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        {/* Back button */}
-        <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6">
-          ← Back to Browse
-        </Link>
+    <div className="py-8 px-4 max-w-[1060px] mx-auto">
+      {/* Breadcrumb navigation */}
+      <nav className="mb-6 text-sm font-['Inter']">
+        <ol className="flex items-center gap-2 text-[#605A57]">
+          <li>
+            <Link href="/" className="hover:text-[#37322F] transition-colors">
+              Home
+            </Link>
+          </li>
+          <li>/</li>
+          <li>
+            <Link href="/explore" className="hover:text-[#37322F] transition-colors">
+              Explore
+            </Link>
+          </li>
+          <li>/</li>
+          <li className="text-[#37322F] font-medium truncate max-w-[200px]">
+            {metadata?.title || 'Content'}
+          </li>
+        </ol>
+      </nav>
+
+      {/* Back button */}
+      <Link 
+        href="/explore" 
+        className="inline-flex items-center text-[#605A57] hover:text-[#37322F] mb-6 font-['Inter'] text-sm transition-colors"
+      >
+        ← Back to Explore
+      </Link>
         
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main content area */}
           <div className="lg:col-span-2 space-y-6">
             {/* Thumbnail / Content Player Area */}
-            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+            <div className="relative aspect-video bg-[#F7F5F3] rounded-lg overflow-hidden border border-[#E0DEDB] shadow-[0px_2px_4px_rgba(55,50,47,0.12)]">
               {(hasAccess || paymentSuccess) && decryptionKey ? (
                 // ContentPlayer for decrypted content
                 <ContentPlayer 
@@ -237,16 +249,16 @@ export default function ContentDetailPage() {
                       priority
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted-foreground/20">
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#F7F5F3] to-[#E0DEDB]">
                       <span className="text-8xl">{getContentTypeIcon(metadata?.contentType || 'video')}</span>
                     </div>
                   )}
                   {/* Lock overlay */}
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[#37322F]/80 flex items-center justify-center backdrop-blur-sm">
                     <div className="text-center text-white">
                       <span className="text-6xl block mb-4">🔒</span>
-                      <p className="text-lg font-medium">Content Locked</p>
-                      <p className="text-sm text-white/70">Pay to unlock</p>
+                      <p className="text-lg font-medium font-['Inter']">Content Locked</p>
+                      <p className="text-sm text-white/70 font-['Inter']">Pay to unlock</p>
                     </div>
                   </div>
                 </>
@@ -256,16 +268,16 @@ export default function ContentDetailPage() {
             {/* Content info */}
             <div>
               <div className="flex items-start justify-between gap-4 mb-4">
-                <h1 className="text-2xl md:text-3xl font-bold">
+                <h1 className="text-3xl md:text-4xl font-['Instrument_Serif'] text-[#37322F]">
                   {metadata?.title || 'Untitled Content'}
                 </h1>
-                <Badge variant="secondary" className="capitalize shrink-0">
+                <Badge variant="secondary" className="capitalize shrink-0 bg-[#F7F5F3] text-[#37322F] border-[#E0DEDB] font-['Inter']">
                   {metadata?.category || 'other'}
                 </Badge>
               </div>
               
               {/* Creator and date */}
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+              <div className="flex items-center gap-4 text-sm text-[#605A57] mb-4 font-['Inter']">
                 <span>by {truncateAddress(contentInfo.creator)}</span>
                 <span>•</span>
                 <span>{metadata?.createdAt ? formatDate(metadata.createdAt) : 'Unknown date'}</span>
@@ -273,7 +285,7 @@ export default function ContentDetailPage() {
               
               {/* Description */}
               {metadata?.description && (
-                <p className="text-muted-foreground whitespace-pre-wrap">
+                <p className="text-[#605A57] whitespace-pre-wrap font-['Inter'] leading-relaxed">
                   {metadata.description}
                 </p>
               )}
@@ -282,7 +294,7 @@ export default function ContentDetailPage() {
               {metadata?.tags && metadata.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {metadata.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
+                    <Badge key={tag} variant="outline" className="text-xs border-[#E0DEDB] text-[#605A57] font-['Inter']">
                       {tag}
                     </Badge>
                   ))}
@@ -294,11 +306,11 @@ export default function ContentDetailPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Payment / Access Card */}
-            <Card>
+            <Card className="bg-white border-[#E0DEDB] shadow-[0px_2px_4px_rgba(55,50,47,0.12)]">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Price</span>
-                  <span className="text-2xl text-primary">
+                <CardTitle className="flex items-center justify-between font-['Inter']">
+                  <span className="text-[#37322F]">Price</span>
+                  <span className="text-2xl text-[#37322F] font-['Instrument_Serif']">
                     ${formatUSDC(contentInfo.priceUSDC)} USDC
                   </span>
                 </CardTitle>
@@ -306,7 +318,7 @@ export default function ContentDetailPage() {
               <CardContent>
                 {!isConnected ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-[#605A57] font-['Inter']">
                       Connect your wallet to unlock this content
                     </p>
                     <ConnectButton />
@@ -315,9 +327,9 @@ export default function ContentDetailPage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-green-600">
                       <span className="text-xl">✓</span>
-                      <span className="font-medium">Access Granted</span>
+                      <span className="font-medium font-['Inter']">Access Granted</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-[#605A57] font-['Inter']">
                       You have access to this content. Enjoy!
                     </p>
                   </div>
@@ -335,9 +347,9 @@ export default function ContentDetailPage() {
             </Card>
             
             {/* Content Details Card */}
-            <Card>
+            <Card className="bg-white border-[#E0DEDB] shadow-[0px_2px_4px_rgba(55,50,47,0.12)]">
               <CardHeader>
-                <CardTitle className="text-lg">Content Details</CardTitle>
+                <CardTitle className="text-lg font-['Inter'] text-[#37322F]">Content Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <DetailRow label="Type" value={metadata?.contentType || 'Unknown'} />
@@ -353,22 +365,22 @@ export default function ContentDetailPage() {
             </Card>
             
             {/* Creator Card */}
-            <Card>
+            <Card className="bg-white border-[#E0DEDB] shadow-[0px_2px_4px_rgba(55,50,47,0.12)]">
               <CardHeader>
-                <CardTitle className="text-lg">Creator</CardTitle>
+                <CardTitle className="text-lg font-['Inter'] text-[#37322F]">Creator</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-[#F7F5F3] border border-[#E0DEDB] flex items-center justify-center">
                     <span className="text-lg">👤</span>
                   </div>
                   <div>
-                    <p className="font-mono text-sm">{truncateAddress(contentInfo.creator)}</p>
+                    <p className="font-mono text-sm text-[#37322F]">{truncateAddress(contentInfo.creator)}</p>
                     <a 
                       href={`https://amoy.polygonscan.com/address/${contentInfo.creator}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
+                      className="text-xs text-[#37322F] hover:underline font-['Inter']"
                     >
                       View on Polygonscan →
                     </a>
@@ -379,30 +391,6 @@ export default function ContentDetailPage() {
           </div>
         </div>
       </div>
-    </main>
-  );
-}
-
-/**
- * Header component
- */
-function Header() {
-  return (
-    <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold hover:text-primary transition-colors">
-          Unlock
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/upload">
-            <Button variant="outline" size="sm">
-              Upload Content
-            </Button>
-          </Link>
-          <ConnectButton />
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -411,9 +399,9 @@ function Header() {
  */
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium capitalize">{value}</span>
+    <div className="flex justify-between text-sm font-['Inter']">
+      <span className="text-[#605A57]">{label}</span>
+      <span className="font-medium capitalize text-[#37322F]">{value}</span>
     </div>
   );
 }
@@ -450,17 +438,17 @@ function ContentDetailSkeleton() {
   return (
     <div className="grid lg:grid-cols-3 gap-8 animate-pulse">
       <div className="lg:col-span-2 space-y-6">
-        <div className="aspect-video bg-muted rounded-lg" />
+        <div className="aspect-video bg-[#F7F5F3] rounded-lg border border-[#E0DEDB]" />
         <div className="space-y-4">
-          <div className="h-8 bg-muted rounded w-3/4" />
-          <div className="h-4 bg-muted rounded w-1/2" />
-          <div className="h-20 bg-muted rounded" />
+          <div className="h-8 bg-[#F7F5F3] rounded w-3/4" />
+          <div className="h-4 bg-[#F7F5F3] rounded w-1/2" />
+          <div className="h-20 bg-[#F7F5F3] rounded" />
         </div>
       </div>
       <div className="space-y-6">
-        <div className="h-40 bg-muted rounded-lg" />
-        <div className="h-32 bg-muted rounded-lg" />
-        <div className="h-24 bg-muted rounded-lg" />
+        <div className="h-40 bg-[#F7F5F3] rounded-lg border border-[#E0DEDB]" />
+        <div className="h-32 bg-[#F7F5F3] rounded-lg border border-[#E0DEDB]" />
+        <div className="h-24 bg-[#F7F5F3] rounded-lg border border-[#E0DEDB]" />
       </div>
     </div>
   );
@@ -526,7 +514,7 @@ function AccessGrantedNoKey({
 
   if (error) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 p-4">
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F7F5F3] p-4">
         <ErrorMessage
           type="decryption"
           message={getUserFriendlyMessage(error)}
@@ -543,12 +531,12 @@ function AccessGrantedNoKey({
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-green-900/20 to-green-600/20">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
       <div className="text-center">
         <LoadingSpinner size="lg" />
         <span className="text-4xl block my-4">{getContentTypeIcon(contentType)}</span>
-        <p className="text-lg font-medium text-green-600">Access Verified</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-lg font-medium text-green-600 font-['Inter']">Access Verified</p>
+        <p className="text-sm text-[#605A57] font-['Inter']">
           Loading decryption key...
         </p>
       </div>

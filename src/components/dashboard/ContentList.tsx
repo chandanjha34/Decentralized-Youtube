@@ -177,9 +177,9 @@ export function ContentList() {
   // Loading state
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border border-border">
         <CardHeader>
-          <CardTitle>Your Content</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Your Content</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12">
@@ -193,9 +193,9 @@ export function ContentList() {
   // Error state
   if (error) {
     return (
-      <Card>
+      <Card className="border border-border">
         <CardHeader>
-          <CardTitle>Your Content</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Your Content</CardTitle>
         </CardHeader>
         <CardContent>
           <ErrorMessage
@@ -213,17 +213,17 @@ export function ContentList() {
   // Empty state
   if (sortedContent.length === 0) {
     return (
-      <Card>
+      <Card className="border border-border">
         <CardHeader>
-          <CardTitle>Your Content</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Your Content</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               You haven&apos;t uploaded any content yet
             </p>
             <Link href="/upload">
-              <Button>Upload Your First Content</Button>
+              <Button className="rounded-full">Upload Your First Content</Button>
             </Link>
           </div>
         </CardContent>
@@ -232,41 +232,43 @@ export function ContentList() {
   }
 
   return (
-    <Card>
+    <Card className="border border-border">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Your Content ({sortedContent.length})</CardTitle>
+        <CardTitle className="text-xl font-instrument-serif">
+          Your Content ({sortedContent.length})
+        </CardTitle>
         <Link href="/upload">
-          <Button size="sm">Upload New</Button>
+          <Button size="sm" className="rounded-full">Upload New</Button>
         </Link>
       </CardHeader>
       <CardContent>
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b">
+              <tr className="border-b border-border">
                 <th 
-                  className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                   onClick={() => handleSort('title')}
                 >
                   Title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">
+                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                   Category
                 </th>
                 <th 
-                  className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                   onClick={() => handleSort('price')}
                 >
                   Price {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
                 </th>
                 <th 
-                  className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                   onClick={() => handleSort('date')}
                 >
                   Upload Date {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
                 </th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">
+                <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
                   Actions
                 </th>
               </tr>
@@ -275,17 +277,17 @@ export function ContentList() {
               {sortedContent.map((item) => (
                 <tr 
                   key={item.contentId}
-                  className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="border-b border-border last:border-0 hover:bg-[rgba(55,50,47,0.03)] cursor-pointer transition-colors"
                   onClick={() => handleRowClick(item.contentId)}
                 >
                   <td className="py-4 px-4">
-                    <div className="font-medium">{item.title}</div>
+                    <div className="text-sm font-medium text-foreground">{item.title}</div>
                     <div className="text-xs text-muted-foreground">
                       {truncateContentId(item.contentId)}
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <Badge variant="secondary" className="capitalize">
+                    <Badge variant="secondary" className="capitalize text-xs">
                       {item.category}
                     </Badge>
                   </td>
@@ -293,14 +295,14 @@ export function ContentList() {
                     {editingContentId === item.contentId ? (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">$</span>
+                          <span className="text-sm text-muted-foreground">$</span>
                           <Input
                             type="number"
                             step="0.01"
                             min="0"
                             value={editPrice}
                             onChange={(e) => setEditPrice(e.target.value)}
-                            className="w-24 h-8"
+                            className="w-24 h-8 text-sm"
                             placeholder="0.00"
                             disabled={isUpdatingPrice || isConfirming}
                             autoFocus
@@ -314,6 +316,7 @@ export function ContentList() {
                           <Button
                             size="sm"
                             variant="default"
+                            className="rounded-full"
                             onClick={() => handleSavePrice(item.contentId)}
                             disabled={isUpdatingPrice || isConfirming}
                           >
@@ -322,6 +325,7 @@ export function ContentList() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            className="rounded-full"
                             onClick={handleCancelEdit}
                             disabled={isUpdatingPrice || isConfirming}
                           >
@@ -331,14 +335,14 @@ export function ContentList() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-primary">
+                        <span className="text-sm font-semibold text-foreground">
                           ${formatUSDC(item.priceUSDC)}
                         </span>
                         <span className="text-xs text-muted-foreground">USDC</span>
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-4 text-muted-foreground">
+                  <td className="py-4 px-4 text-sm text-muted-foreground">
                     {formatDate(item.uploadDate)}
                   </td>
                   <td className="py-4 px-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -346,6 +350,7 @@ export function ContentList() {
                       <Button 
                         variant="outline" 
                         size="sm"
+                        className="rounded-full"
                         onClick={() => handleStartEdit(item.contentId, item.priceUSDC)}
                       >
                         Edit Price
@@ -356,6 +361,57 @@ export function ContentList() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {sortedContent.map((item) => (
+            <Card 
+              key={item.contentId}
+              className="border border-border cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleRowClick(item.contentId)}
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-base font-medium text-foreground mb-1">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {truncateContentId(item.contentId)}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="capitalize text-xs">
+                      {item.category}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-semibold text-foreground">
+                        ${formatUSDC(item.priceUSDC)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">USDC</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{formatDate(item.uploadDate)}</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartEdit(item.contentId, item.priceUSDC);
+                      }}
+                    >
+                      Edit Price
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </CardContent>
     </Card>

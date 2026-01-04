@@ -40,5 +40,10 @@ next-env.d.ts
 /cache
 /artifacts
 /typechain-types
+
+# Kiro
 /.kiro
-.env.example
+
+# Test results
+/playwright-report
+/test-results

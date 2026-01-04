@@ -48,11 +48,11 @@ const ERROR_TITLES: Record<ErrorType, string> = {
  */
 const ERROR_SUGGESTIONS: Record<ErrorType, string> = {
   wallet: 'Please check your wallet connection and try again.',
-  network: 'Please check your internet connection and ensure you\'re on Polygon Amoy network.',
-  payment: 'The payment could not be processed. Please check your USDC balance and try again.',
+  network: 'Check your internet connection and ensure you\'re on Polygon Amoy network. If the error persists, you may need testnet POL for gas fees.',
+  payment: 'The payment could not be processed. Make sure you have testnet POL for gas fees. Get free POL at: https://faucet.polygon.technology/',
   decryption: 'Unable to decrypt the content. Try refreshing the page or re-fetching the key.',
   ipfs: 'Unable to access the storage network. Please try again in a moment.',
-  contract: 'The blockchain transaction failed. Please check your gas and try again.',
+  contract: 'The blockchain transaction failed. Make sure you have enough POL for gas fees. Get free testnet POL at: https://faucet.polygon.technology/',
   generic: 'An unexpected error occurred. Please try again.',
 };
 
@@ -272,20 +272,23 @@ export function getUserFriendlyMessage(error: Error | string): string {
   if (message.includes('User rejected')) {
     return 'You cancelled the transaction in your wallet.';
   }
-  if (message.includes('insufficient funds')) {
-    return 'Insufficient funds in your wallet.';
+  if (message.includes('Internal JSON-RPC error')) {
+    return 'Wallet RPC error. You may need testnet POL for gas fees. Get free POL at: https://faucet.polygon.technology/';
+  }
+  if (message.includes('insufficient funds') || message.includes('insufficient balance')) {
+    return 'Insufficient POL balance. Get free testnet POL at: https://faucet.polygon.technology/';
   }
   if (message.includes('nonce')) {
-    return 'Transaction conflict. Please try again.';
+    return 'Transaction conflict. Try resetting your wallet account in MetaMask settings.';
   }
   if (message.includes('gas')) {
-    return 'Transaction ran out of gas. Try increasing the gas limit.';
+    return 'Gas estimation failed. Make sure you have enough POL for gas fees.';
   }
   if (message.includes('timeout')) {
-    return 'The request timed out. Please check your connection.';
+    return 'The request timed out. Please check your connection and try again.';
   }
   if (message.includes('network')) {
-    return 'Network error. Please check your connection.';
+    return 'Network error. Please check your connection and ensure you\'re on Polygon Amoy.';
   }
   
   // Return original message if no match (truncate if too long)

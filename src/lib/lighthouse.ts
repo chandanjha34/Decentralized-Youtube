@@ -1,74 +1,63 @@
 /**
  * Lighthouse Storage Utilities
  * 
- * Client-side utilities for uploading encrypted content and metadata to IPFS via Lighthouse.
+ * Client-side utilities for uploading and fetching encrypted content via Lighthouse.
  * - Uses Lighthouse SDK for reliable IPFS storage
- * - Uses universal IPFS gateway (dweb.link) for fetching to support content from any provider
+ * - Uses Lighthouse's dedicated gateway for fast retrieval
  * - Returns CID (Content Identifier) on successful upload
  * 
- * Requirements: 2.3, 2.4, 2.6
+ * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5
  */
 
 import lighthouse from '@lighthouse-web3/sdk';
 
 /**
- * IPFS Gateway configuration
- * Using dweb.link as it's a universal gateway that can fetch from any IPFS node
- * This allows fetching content uploaded to Pinata, Lighthouse, or any other IPFS provider
+ * Lighthouse Gateway configuration - single dedicated gateway for fast, reliable fetching
  */
-const IPFS_FETCH_GATEWAY = 'https://dweb.link/ipfs';
+const LIGHTHOUSE_GATEWAY = 'https://gateway.lighthouse.storage/ipfs';
+
+/**
+ * Fetch configuration
+ */
+const FETCH_TIMEOUT_MS = 10000; // 10 seconds per attempt
+const MAX_RETRIES = 3; // Total of 3 attempts
 
 /**
  * Gets the Lighthouse API key from environment variables.
- * Throws an error if not configured.
  */
 function getLighthouseApiKey(): string {
   const apiKey = process.env.NEXT_PUBLIC_LIGHTHOUSE_API_KEY;
   if (!apiKey) {
     throw new Error(
-      'Lighthouse API key not configured. Set NEXT_PUBLIC_LIGHTHOUSE_API_KEY in your environment variables. ' +
-      'Get your API key at https://files.lighthouse.storage/'
+      'Lighthouse API key not configured. Set NEXT_PUBLIC_LIGHTHOUSE_API_KEY in your environment variables.'
     );
   }
   return apiKey;
 }
 
-/**
- * Options for file upload
- */
 export interface UploadFileOptions {
-  /** Optional name for the file */
   name?: string;
 }
 
-/**
- * Options for JSON upload
- */
 export interface UploadJSONOptions {
-  /** Name for the JSON file */
   name: string;
 }
 
-/**
- * Result of a successful upload
- */
 export interface UploadResult {
-  /** IPFS Content Identifier */
   cid: string;
-  /** Size of content in bytes */
   size: number;
-  /** Full gateway URL to access the content */
   gatewayUrl: string;
 }
 
 /**
- * Uploads a file (as Uint8Array or Blob) to IPFS via Lighthouse.
- * Used for uploading encrypted content blobs.
+ * Uploads a file to IPFS via Lighthouse.
  * 
  * @param content - The file content as Uint8Array or Blob
  * @param options - Optional upload configuration
  * @returns Promise resolving to upload result with CID
  * @throws Error if upload fails
+ * 
+ * Validates: Requirements 2.1, 2.2
  */
 export async function uploadFile(
   content: Uint8Array | Blob,
@@ -76,7 +65,6 @@ export async function uploadFile(
 ): Promise<UploadResult> {
   const apiKey = getLighthouseApiKey();
   
-  // Convert to Blob if needed
   let blob: Blob;
   if (content instanceof Blob) {
     blob = content;
@@ -86,11 +74,9 @@ export async function uploadFile(
     blob = new Blob([buffer], { type: 'application/octet-stream' });
   }
   
-  // Create a File object from Blob (Lighthouse SDK expects File)
   const fileName = options.name || `content-${Date.now()}`;
   const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
   
-  // Upload using Lighthouse SDK
   const response = await lighthouse.upload(
     [file] as unknown as FileList,
     apiKey
@@ -103,18 +89,19 @@ export async function uploadFile(
   return {
     cid: response.data.Hash,
     size: parseInt(response.data.Size || '0', 10),
-    gatewayUrl: `${IPFS_FETCH_GATEWAY}/${response.data.Hash}`,
+    gatewayUrl: `${LIGHTHOUSE_GATEWAY}/${response.data.Hash}`,
   };
 }
 
 /**
  * Uploads a JSON object to IPFS via Lighthouse.
- * Used for uploading content metadata.
  * 
  * @param json - The JSON object to upload
- * @param options - Upload configuration
+ * @param options - Upload configuration (name is required)
  * @returns Promise resolving to upload result with CID
  * @throws Error if upload fails
+ * 
+ * Validates: Requirements 2.3
  */
 export async function uploadJSON(
   json: Record<string, unknown>,
@@ -122,12 +109,10 @@ export async function uploadJSON(
 ): Promise<UploadResult> {
   const apiKey = getLighthouseApiKey();
   
-  // Convert JSON to Blob
   const jsonString = JSON.stringify(json, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
   const file = new File([blob], `${options.name}.json`, { type: 'application/json' });
   
-  // Upload using Lighthouse SDK
   const response = await lighthouse.upload(
     [file] as unknown as FileList,
     apiKey
@@ -140,59 +125,129 @@ export async function uploadJSON(
   return {
     cid: response.data.Hash,
     size: parseInt(response.data.Size || '0', 10),
-    gatewayUrl: `${IPFS_FETCH_GATEWAY}/${response.data.Hash}`,
+    gatewayUrl: `${LIGHTHOUSE_GATEWAY}/${response.data.Hash}`,
   };
 }
 
 /**
- * Fetches content from IPFS via universal gateway.
- * Uses dweb.link which can fetch from any IPFS provider.
+ * Helper function to fetch with retry and exponential backoff.
  * 
- * @param cid - The IPFS Content Identifier
- * @returns Promise resolving to the content as ArrayBuffer
- * @throws Error if fetch fails
+ * @param url - The URL to fetch
+ * @param maxRetries - Maximum number of retry attempts
+ * @returns Promise resolving to Response
+ * @throws Error if all retries fail
+ * 
+ * Validates: Requirements 1.3, 1.5
  */
-export async function fetchFromIPFS(cid: string): Promise<ArrayBuffer> {
-  const url = `${IPFS_FETCH_GATEWAY}/${cid}`;
+async function fetchWithRetry(url: string, maxRetries: number): Promise<Response> {
+  let lastError: Error | null = null;
   
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch from IPFS: ${response.statusText}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      // Don't retry on 404 - content doesn't exist
+      if (response.status === 404) {
+        throw new Error('Content not found on Lighthouse');
+      }
+      
+      // For other errors, prepare to retry
+      lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+      
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error('Fetch failed');
+      
+      // Check for timeout
+      if (lastError.name === 'TimeoutError' || lastError.message.includes('timeout')) {
+        lastError = new Error('Network timeout - please check your connection');
+      }
+      
+      // Don't retry on 404 or invalid CID errors
+      if (lastError.message.includes('not found') || 
+          lastError.message.includes('Invalid')) {
+        throw lastError;
+      }
+      
+      // Exponential backoff: wait 2^attempt seconds before retry
+      if (attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 0s, 2s, 4s
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
   
-  return response.arrayBuffer();
+  // All retries failed
+  throw lastError || new Error('Failed to fetch from Lighthouse after retries');
 }
 
 /**
- * Fetches JSON content from IPFS via universal gateway.
- * Uses dweb.link which can fetch from any IPFS provider.
+ * Fetches content from IPFS via Lighthouse gateway with retry logic.
+ * 
+ * @param cid - The IPFS Content Identifier
+ * @returns Promise resolving to the content as ArrayBuffer
+ * @throws Error if fetch fails after retries
+ * 
+ * Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 4.1, 4.2, 4.3, 4.4
+ */
+export async function fetchFromIPFS(cid: string): Promise<ArrayBuffer> {
+  // Validate CID first
+  if (!isValidCID(cid)) {
+    throw new Error('Invalid content identifier');
+  }
+  
+  const url = `${LIGHTHOUSE_GATEWAY}/${cid}`;
+  
+  try {
+    const response = await fetchWithRetry(url, MAX_RETRIES);
+    return response.arrayBuffer();
+  } catch (err) {
+    // Re-throw with context
+    const error = err instanceof Error ? err : new Error('Fetch failed');
+    throw new Error(`Failed to fetch from Lighthouse: ${error.message}`);
+  }
+}
+
+/**
+ * Fetches JSON content from IPFS via Lighthouse gateway with retry logic.
  * 
  * @param cid - The IPFS Content Identifier
  * @returns Promise resolving to the parsed JSON object
- * @throws Error if fetch or parse fails
+ * @throws Error if fetch or parse fails after retries
+ * 
+ * Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 4.1, 4.2, 4.3, 4.4
  */
 export async function fetchJSONFromIPFS<T = Record<string, unknown>>(cid: string): Promise<T> {
-  const url = `${IPFS_FETCH_GATEWAY}/${cid}`;
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch JSON from IPFS: ${response.statusText}`);
+  // Validate CID first
+  if (!isValidCID(cid)) {
+    throw new Error('Invalid content identifier');
   }
   
-  return response.json() as Promise<T>;
+  const url = `${LIGHTHOUSE_GATEWAY}/${cid}`;
+  
+  try {
+    const response = await fetchWithRetry(url, MAX_RETRIES);
+    return response.json() as Promise<T>;
+  } catch (err) {
+    // Re-throw with context
+    const error = err instanceof Error ? err : new Error('Fetch failed');
+    throw new Error(`Failed to fetch JSON from Lighthouse: ${error.message}`);
+  }
 }
 
 /**
  * Constructs a gateway URL for a given CID.
- * Uses universal gateway for maximum compatibility.
  * 
  * @param cid - The IPFS Content Identifier
- * @returns The full gateway URL
+ * @returns The full Lighthouse gateway URL
  */
 export function getGatewayUrl(cid: string): string {
-  return `${IPFS_FETCH_GATEWAY}/${cid}`;
+  return `${LIGHTHOUSE_GATEWAY}/${cid}`;
 }
 
 /**
@@ -204,13 +259,8 @@ export function getGatewayUrl(cid: string): string {
  */
 export function isValidCID(cid: string): boolean {
   if (!cid || typeof cid !== 'string') return false;
-  
-  // CIDv0: starts with Qm, 46 characters
   const cidV0Regex = /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/;
-  
-  // CIDv1: starts with bafy (base32) or various other bases
   const cidV1Regex = /^(bafy|bafk|bafz|bafb)[a-z2-7]{52,}$/i;
-  
   return cidV0Regex.test(cid) || cidV1Regex.test(cid);
 }
 
@@ -218,5 +268,7 @@ export function isValidCID(cid: string): boolean {
  * Constants exported for configuration and testing
  */
 export const LIGHTHOUSE_CONSTANTS = {
-  GATEWAY_URL: IPFS_FETCH_GATEWAY,
+  GATEWAY_URL: LIGHTHOUSE_GATEWAY,
+  FETCH_TIMEOUT_MS,
+  MAX_RETRIES,
 } as const;

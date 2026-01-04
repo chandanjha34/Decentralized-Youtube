@@ -4,12 +4,22 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'dweb.link',
+        hostname: 'gateway.lighthouse.storage',
         pathname: '/ipfs/**',
       },
       {
         protocol: 'https',
-        hostname: 'gateway.lighthouse.storage',
+        hostname: 'cloudflare-ipfs.com',
+        pathname: '/ipfs/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ipfs.io',
+        pathname: '/ipfs/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dweb.link',
         pathname: '/ipfs/**',
       },
       {
@@ -22,12 +32,15 @@ const nextConfig = {
         hostname: '*.pinata.cloud',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'ipfs.io',
-        pathname: '/ipfs/**',
-      },
     ],
+  },
+  // Exclude frontend-sample from build
+  webpack: (config) => {
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ['**/frontend-sample/**', '**/node_modules/**'],
+    };
+    return config;
   },
 };
 

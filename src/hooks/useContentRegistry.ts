@@ -2,7 +2,7 @@
 
 import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { ACCESS_REGISTRY_ADDRESS, accessRegistryAbi, type ContentInfo } from '@/lib/contracts';
-import { fetchJSONFromIPFS } from '@/lib/lighthouse';
+import { fetchJSONFromIPFS, isValidCID } from '@/lib/lighthouse';
 import { useState, useEffect, useCallback } from 'react';
 import type { ContentMetadata, Category, ContentCardData, DashboardContent, Transaction } from '@/types/content';
 import { parseAbiItem } from 'viem';
@@ -134,21 +134,9 @@ export function useAllContent(contentIds: `0x${string}`[] | undefined) {
           // Skip inactive content
           if (!info.active) continue;
 
-          // Check if metadataCID looks like a valid IPFS CID
-          const isValidCID = info.metadataCID.startsWith('Qm') || info.metadataCID.startsWith('bafy');
-          
-          if (!isValidCID) {
-            // Skip invalid CIDs (test data)
-            console.warn(`Skipping invalid CID for ${contentId}: ${info.metadataCID}`);
-            results.push({
-              contentId,
-              title: 'Test Content (Invalid CID)',
-              thumbnailCID: null,
-              creatorAddress: info.creator,
-              priceUSDC: info.priceUSDC,
-              category: 'other' as Category,
-              tags: [],
-            });
+          // Validate CID format - must be valid IPFS CID
+          if (!isValidCID(info.metadataCID)) {
+            console.warn(`Skipping content with invalid CID format: ${contentId} (${info.metadataCID})`);
             continue;
           }
 
@@ -166,17 +154,9 @@ export function useAllContent(contentIds: `0x${string}`[] | undefined) {
               tags: metadata.tags || [],
             });
           } catch (err) {
-            // If metadata fetch fails, use fallback data
-            console.warn(`Failed to fetch metadata for ${contentId}:`, err);
-            results.push({
-              contentId,
-              title: 'Untitled Content',
-              thumbnailCID: null,
-              creatorAddress: info.creator,
-              priceUSDC: info.priceUSDC,
-              category: 'other' as Category,
-              tags: [],
-            });
+            // If metadata fetch fails, skip this content entirely
+            console.warn(`Failed to fetch metadata for ${contentId}, skipping:`, err);
+            continue;
           }
         }
 
@@ -255,6 +235,15 @@ export function useCreatorDashboardContent(creatorAddress: string | undefined) {
         if (result.status !== 'success' || !result.result) continue;
 
         const info = result.result as ContentInfo;
+        
+        // Skip inactive content
+        if (!info.active) continue;
+        
+        // Validate CID format - must be valid IPFS CID
+        if (!isValidCID(info.metadataCID)) {
+          console.warn(`Skipping dashboard content with invalid CID format: ${contentId} (${info.metadataCID})`);
+          continue;
+        }
 
         try {
           // Fetch metadata from IPFS
@@ -271,18 +260,9 @@ export function useCreatorDashboardContent(creatorAddress: string | undefined) {
             status: info.active ? 'active' : 'inactive',
           });
         } catch (err) {
-          // If metadata fetch fails, use fallback data
-          console.warn(`Failed to fetch metadata for ${contentId}:`, err);
-          results.push({
-            contentId,
-            title: 'Untitled Content',
-            category: 'other' as Category,
-            priceUSDC: info.priceUSDC,
-            uploadDate: new Date(Number(info.createdAt) * 1000),
-            viewCount: 0,
-            totalEarnings: BigInt(0),
-            status: info.active ? 'active' : 'inactive',
-          });
+          // If metadata fetch fails, skip this content entirely
+          console.warn(`Failed to fetch dashboard metadata for ${contentId}, skipping:`, err);
+          continue;
         }
       }
 

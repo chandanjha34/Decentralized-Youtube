@@ -189,7 +189,7 @@ export function ContentPlayer({
  */
 function LoadingState({ message }: { message: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F7F5F3]">
       <LoadingSpinner size="lg" message={message} />
     </div>
   );
@@ -202,7 +202,7 @@ function LoadingState({ message }: { message: string }) {
  */
 function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 p-4">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F7F5F3] p-4">
       <ErrorMessage
         type="decryption"
         message={message}
@@ -226,7 +226,7 @@ function VideoPlayer({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   return (
-    <div className="absolute inset-0 bg-black flex items-center justify-center">
+    <div className="absolute inset-0 bg-[#37322F] flex items-center justify-center">
       <video
         ref={videoRef}
         src={src}
@@ -253,7 +253,7 @@ function AudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-purple-900/20 to-blue-900/20">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#F7F5F3] to-[#E0DEDB]">
       <span className="text-8xl mb-8">🎵</span>
       <audio
         ref={audioRef}
@@ -265,7 +265,7 @@ function AudioPlayer({ src }: { src: string }) {
       >
         Your browser does not support the audio tag.
       </audio>
-      <p className="text-sm text-muted-foreground mt-4">
+      <p className="text-sm text-[#605A57] mt-4 font-['Inter']">
         Audio content ready to play
       </p>
     </div>
@@ -281,7 +281,7 @@ function AudioPlayer({ src }: { src: string }) {
  */
 function PDFViewer({ src }: { src: string }) {
   return (
-    <div className="absolute inset-0 bg-white">
+    <div className="absolute inset-0 bg-[#FFFFFF]">
       <iframe
         src={src}
         title="PDF Viewer"
@@ -303,7 +303,7 @@ function ImageViewer({ src }: { src: string }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+    <div className="absolute inset-0 flex items-center justify-center bg-[#F7F5F3]">
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="animate-pulse text-4xl">🖼️</div>
@@ -340,21 +340,21 @@ function ArticleViewer({ content }: { content: string }) {
       // Check for headers
       if (paragraph.startsWith('# ')) {
         return (
-          <h1 key={index} className="text-3xl font-bold mb-4 mt-6 first:mt-0">
+          <h1 key={index} className="text-3xl font-['Instrument_Serif'] font-normal text-[#37322F] mb-4 mt-6 first:mt-0">
             {paragraph.slice(2)}
           </h1>
         );
       }
       if (paragraph.startsWith('## ')) {
         return (
-          <h2 key={index} className="text-2xl font-semibold mb-3 mt-5">
+          <h2 key={index} className="text-2xl font-['Instrument_Serif'] font-normal text-[#37322F] mb-3 mt-5">
             {paragraph.slice(3)}
           </h2>
         );
       }
       if (paragraph.startsWith('### ')) {
         return (
-          <h3 key={index} className="text-xl font-medium mb-2 mt-4">
+          <h3 key={index} className="text-xl font-['Inter'] font-medium text-[#37322F] mb-2 mt-4">
             {paragraph.slice(4)}
           </h3>
         );
@@ -364,7 +364,7 @@ function ArticleViewer({ content }: { content: string }) {
       if (paragraph.startsWith('```')) {
         const codeContent = paragraph.replace(/^```\w*\n?/, '').replace(/```$/, '');
         return (
-          <pre key={index} className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm">
+          <pre key={index} className="bg-[#F7F5F3] border border-[#E0DEDB] p-4 rounded-lg overflow-x-auto my-4 text-sm font-['Inter']">
             <code>{codeContent}</code>
           </pre>
         );
@@ -374,7 +374,7 @@ function ArticleViewer({ content }: { content: string }) {
       if (paragraph.match(/^[-*]\s/m)) {
         const items = paragraph.split(/\n/).filter(line => line.match(/^[-*]\s/));
         return (
-          <ul key={index} className="list-disc list-inside my-4 space-y-1">
+          <ul key={index} className="list-disc list-inside my-4 space-y-1 text-[#37322F] font-['Inter']">
             {items.map((item, i) => (
               <li key={i}>{item.replace(/^[-*]\s/, '')}</li>
             ))}
@@ -386,7 +386,7 @@ function ArticleViewer({ content }: { content: string }) {
       if (paragraph.match(/^\d+\.\s/m)) {
         const items = paragraph.split(/\n/).filter(line => line.match(/^\d+\.\s/));
         return (
-          <ol key={index} className="list-decimal list-inside my-4 space-y-1">
+          <ol key={index} className="list-decimal list-inside my-4 space-y-1 text-[#37322F] font-['Inter']">
             {items.map((item, i) => (
               <li key={i}>{item.replace(/^\d+\.\s/, '')}</li>
             ))}
@@ -397,7 +397,7 @@ function ArticleViewer({ content }: { content: string }) {
       // Check for blockquotes
       if (paragraph.startsWith('> ')) {
         return (
-          <blockquote key={index} className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground">
+          <blockquote key={index} className="border-l-4 border-[#37322F] pl-4 italic my-4 text-[#605A57] font-['Inter']">
             {paragraph.slice(2)}
           </blockquote>
         );
@@ -405,7 +405,7 @@ function ArticleViewer({ content }: { content: string }) {
       
       // Regular paragraph with inline formatting
       return (
-        <p key={index} className="my-3 leading-relaxed">
+        <p key={index} className="my-3 leading-relaxed text-[#37322F] font-['Inter']">
           {renderInlineFormatting(paragraph)}
         </p>
       );
@@ -413,8 +413,8 @@ function ArticleViewer({ content }: { content: string }) {
   }, [content]);
 
   return (
-    <div className="absolute inset-0 overflow-auto bg-background">
-      <article className="max-w-3xl mx-auto p-6 md:p-8 prose prose-neutral dark:prose-invert">
+    <div className="absolute inset-0 overflow-auto bg-[#FFFFFF]">
+      <article className="max-w-3xl mx-auto p-6 md:p-8">
         {renderContent()}
       </article>
     </div>
@@ -443,7 +443,7 @@ function renderInlineFormatting(text: string): React.ReactNode {
       }
       // Add the code
       parts.push(
-        <code key={key++} className="bg-muted px-1.5 py-0.5 rounded text-sm">
+        <code key={key++} className="bg-[#F7F5F3] border border-[#E0DEDB] px-1.5 py-0.5 rounded text-sm font-['Inter']">
           {codeMatch[1]}
         </code>
       );

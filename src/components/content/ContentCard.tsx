@@ -62,7 +62,10 @@ export function ContentCard({
 
   return (
     <Link href={`/content/${contentId}`} className="block group">
-      <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer h-full">
+      <Card 
+        data-testid="content-card"
+        className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer h-full"
+      >
         {/* Thumbnail */}
         <div className="relative aspect-video bg-muted overflow-hidden">
           {thumbnailUrl ? (

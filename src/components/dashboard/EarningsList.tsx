@@ -76,9 +76,9 @@ export function EarningsList() {
   // Loading state
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border border-border">
         <CardHeader>
-          <CardTitle>Earnings</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Earnings</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12">
@@ -92,9 +92,9 @@ export function EarningsList() {
   // Error state
   if (error) {
     return (
-      <Card>
+      <Card className="border border-border">
         <CardHeader>
-          <CardTitle>Earnings</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Earnings</CardTitle>
         </CardHeader>
         <CardContent>
           <ErrorMessage
@@ -112,13 +112,13 @@ export function EarningsList() {
   return (
     <div className="space-y-6">
       {/* Total Earnings Card */}
-      <Card>
+      <Card className="border border-border">
         <CardHeader>
-          <CardTitle>Total Earnings</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Total Earnings</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-primary">
+            <span className="text-5xl font-instrument-serif text-foreground">
               ${formatUSDC(earnings.totalEarningsUSDC)}
             </span>
             <span className="text-lg text-muted-foreground">USDC</span>
@@ -130,12 +130,13 @@ export function EarningsList() {
       </Card>
 
       {/* Recent Transactions */}
-      <Card>
+      <Card className="border border-border">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle className="text-xl font-instrument-serif">Recent Transactions</CardTitle>
           <Button
             variant="ghost"
             size="sm"
+            className="rounded-full"
             onClick={() => refetch()}
           >
             Refresh
@@ -144,70 +145,116 @@ export function EarningsList() {
         <CardContent>
           {earnings.recentTransactions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 No transactions yet. Share your content to start earning!
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Content
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Consumer
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Amount
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                      Date
-                    </th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">
-                      Transaction
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {earnings.recentTransactions.map((tx, index) => (
-                    <tr 
-                      key={`${tx.txHash}-${index}`}
-                      className="border-b last:border-0 hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="font-medium">{tx.contentTitle}</div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {truncateAddress(tx.consumerAddress)}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="font-semibold text-green-600">
-                          +${formatUSDC(tx.amountUSDC)}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-1">USDC</span>
-                      </td>
-                      <td className="py-4 px-4 text-muted-foreground text-sm">
-                        {formatDate(tx.timestamp)}
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <a
-                          href={getPolygonscanUrl(tx.txHash)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-sm font-mono"
-                        >
-                          {truncateTxHash(tx.txHash)} ↗
-                        </a>
-                      </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Content
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Consumer
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Amount
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Date
+                      </th>
+                      <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
+                        Transaction
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {earnings.recentTransactions.map((tx, index) => (
+                      <tr 
+                        key={`${tx.txHash}-${index}`}
+                        className="border-b border-border last:border-0 hover:bg-[rgba(55,50,47,0.03)] transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="text-sm font-medium text-foreground">{tx.contentTitle}</div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {truncateAddress(tx.consumerAddress)}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-semibold text-green-600">
+                            +${formatUSDC(tx.amountUSDC)}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-1">USDC</span>
+                        </td>
+                        <td className="py-4 px-4 text-sm text-muted-foreground">
+                          {formatDate(tx.timestamp)}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <a
+                            href={getPolygonscanUrl(tx.txHash)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline font-mono"
+                          >
+                            {truncateTxHash(tx.txHash)} ↗
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4">
+                {earnings.recentTransactions.map((tx, index) => (
+                  <Card 
+                    key={`${tx.txHash}-${index}`}
+                    className="border border-border"
+                  >
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-foreground mb-1">
+                              {tx.contentTitle}
+                            </h3>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {truncateAddress(tx.consumerAddress)}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-green-600">
+                              +${formatUSDC(tx.amountUSDC)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">USDC</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{formatDate(tx.timestamp)}</span>
+                          <a
+                            href={getPolygonscanUrl(tx.txHash)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline font-mono"
+                          >
+                            {truncateTxHash(tx.txHash)} ↗
+                          </a>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

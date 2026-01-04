@@ -110,11 +110,23 @@ export function usePolPayment(): UsePolPaymentResult {
   // Handle send error
   useEffect(() => {
     if (isSendError && sendError) {
-      const msg = sendError.message.includes('User rejected') 
-        ? 'Transaction rejected by user'
-        : sendError.message.includes('insufficient')
-        ? 'Insufficient POL balance'
-        : 'Failed to send transaction. Please try again.';
+      console.error('Payment transaction error:', sendError);
+      
+      const errorMsg = sendError.message || String(sendError);
+      let msg: string;
+      
+      if (errorMsg.includes('User rejected') || errorMsg.includes('user rejected')) {
+        msg = 'Transaction rejected by user';
+      } else if (errorMsg.includes('insufficient')) {
+        msg = 'Insufficient POL balance';
+      } else if (errorMsg.includes('Internal JSON-RPC error')) {
+        msg = 'Internal JSON-RPC error. You may need testnet POL for gas fees.';
+      } else if (errorMsg.includes('gas')) {
+        msg = 'Gas estimation failed. Make sure you have enough POL for gas fees.';
+      } else {
+        msg = 'Failed to send transaction. Please try again.';
+      }
+      
       setError(msg);
       setStatus('error');
     }
